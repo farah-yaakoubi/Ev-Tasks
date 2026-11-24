@@ -1,0 +1,464 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../../node_modules/.prisma/ev-tasks"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum UserRole {
+  DIRECTOR
+  COLLABORATOR
+}
+
+enum TaskStatus {
+  TODO
+  DOING
+  WAITING
+  REVIEW
+  FIX
+  DONE
+}
+
+enum TaskPriority {
+  URGENT
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum EvaluationPeriod {
+  DAILY
+  MONTHLY
+  YEARLY
+}
+
+enum ConversationKind {
+  DIRECT
+  GROUP
+}
+
+model Team {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  members   User[]
+  projects  Project[]
+  spaces    ForumSpace[]
+}
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  passwordHash   String
+  name           String
+  title          String
+  role           UserRole  @default(COLLABORATOR)
+  isActive       Boolean   @default(true)
+  avatarPath     String?
+  lastSeenAt     DateTime?
+  teamId         String
+  team           Team      @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  ownedProjects       Project[]             @relation("ProjectOwner")
+  projectMemberships  ProjectMember[]
+  createdTasks        Task[]                 @relation("TaskCreator")
+  taskAssignments     TaskAssignee[]
+  subtasksAssigned    SubtaskAssignee[]
+  taskComments        TaskComment[]
+  uploadedMedia       MediaAsset[]           @relation("MediaUploader")
+  evaluationsReceived MemberEvaluation[]     @relation("EvaluationMember")
+  evaluationsGiven    MemberEvaluation[]     @relation("EvaluationEvaluator")
+  createdCriteria     EvaluationCriterion[]  @relation("CriterionCreator")
+  forumSpacesCreated  ForumSpace[]           @relation("ForumSpaceCreator")
+  forumMemberships    ForumSpaceMember[]
+  forumTopics         ForumTopic[]
+  forumReplies        ForumReply[]
+  topicLikes          ForumTopicLike[]
+  topicBookmarks      ForumTopicBookmark[]
+  conversationsCreated Conversation[]        @relation("ConversationCreator")
+  conversationMemberships ConversationMember[]
+  sentMessages        Message[]
+  notifications       Notification[]
+  activityEntries     ActivityLog[]
+  sessions            AuthSession[]
+
+  @@index([teamId, role, isActive])
+}
+
+model Project {
+  id          String       @id @default(cuid())
+  teamId      String
+  team        Team         @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  ownerId     String
+  owner       User         @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  name        String
+  description String       @default("")
+  startsAt    DateTime?
+  dueAt       DateTime?
+  priority    TaskPriority @default(MEDIUM)
+  isClosed    Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  members     ProjectMember[]
+  tasks       Task[]
+  activities  ActivityLog[]
+
+  @@unique([teamId, name])
+  @@index([teamId, isClosed, updatedAt])
+}
+
+model ProjectMember {
+  projectId String
+  userId    String
+  addedAt   DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, userId])
+  @@index([userId])
+}
+
+model Task {
+  id          String       @id @default(cuid())
+  projectId   String?
+  project     Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  creatorId   String
+  creator     User         @relation("TaskCreator", fields: [creatorId], references: [id], onDelete: Restrict)
+  title       String
+  description String       @default("")
+  startsAt    DateTime?
+  dueAt       DateTime?
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(MEDIUM)
+  progress    Int          @default(0)
+  sortOrder   Int          @default(0)
+  isArchived  Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  assignees       TaskAssignee[]
+  subtasks        Subtask[]
+  comments        TaskComment[]
+  attachments     TaskAttachment[]
+  dependencies    TaskDependency[] @relation("TaskDependsOn")
+  dependents      TaskDependency[] @relation("TaskBlocks")
+  activities      ActivityLog[]
+
+  @@index([projectId, status, sortOrder])
+  @@index([dueAt, status])
+  @@index([updatedAt])
+}
+
+model TaskAssignee {
+  taskId     String
+  userId     String
+  assignedAt DateTime @default(now())
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, userId])
+  @@index([userId, taskId])
+}
+
+model Subtask {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  title     String
+  isDone    Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  assignees SubtaskAssignee[]
+
+  @@index([taskId, sortOrder])
+}
+
+model SubtaskAssignee {
+  subtaskId String
+  userId    String
+  subtask   Subtask  @relation(fields: [subtaskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([subtaskId, userId])
+  @@index([userId])
+}
+
+model TaskDependency {
+  taskId       String
+  dependsOnId  String
+  task         Task @relation("TaskDependsOn", fields: [taskId], references: [id], onDelete: Cascade)
+  dependsOn    Task @relation("TaskBlocks", fields: [dependsOnId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, dependsOnId])
+  @@index([dependsOnId])
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([taskId, createdAt])
+}
+
+model MediaAsset {
+  id           String   @id @default(cuid())
+  originalName String
+  storedName   String   @unique
+  storagePath  String
+  mimeType     String
+  sizeBytes    BigInt
+  sha256       String?
+  uploaderId   String
+  uploader     User     @relation("MediaUploader", fields: [uploaderId], references: [id], onDelete: Restrict)
+  createdAt    DateTime @default(now())
+  taskLinks    TaskAttachment[]
+  messageLinks MessageAttachment[]
+
+  @@index([uploaderId, createdAt])
+}
+
+model TaskAttachment {
+  taskId      String
+  mediaAssetId String
+  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  mediaAsset  MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Restrict)
+  attachedAt  DateTime  @default(now())
+
+  @@id([taskId, mediaAssetId])
+  @@index([mediaAssetId])
+}
+
+model EvaluationCriterion {
+  id          String   @id @default(cuid())
+  creatorId   String
+  creator     User     @relation("CriterionCreator", fields: [creatorId], references: [id], onDelete: Restrict)
+  label       String
+  description String   @default("")
+  maxScore    Float    @default(5)
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  scores      EvaluationScore[]
+
+  @@unique([creatorId, label])
+  @@index([creatorId, isActive, sortOrder])
+}
+
+model MemberEvaluation {
+  id          String           @id @default(cuid())
+  memberId    String
+  member      User             @relation("EvaluationMember", fields: [memberId], references: [id], onDelete: Restrict)
+  evaluatorId String
+  evaluator   User             @relation("EvaluationEvaluator", fields: [evaluatorId], references: [id], onDelete: Restrict)
+  period      EvaluationPeriod
+  evaluatedAt DateTime
+  comment     String           @default("")
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  scores      EvaluationScore[]
+
+  @@index([memberId, evaluatedAt])
+  @@index([evaluatorId, evaluatedAt])
+}
+
+model EvaluationScore {
+  id                    String              @id @default(cuid())
+  evaluationId          String
+  evaluation            MemberEvaluation    @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  criterionId           String?
+  criterion             EvaluationCriterion? @relation(fields: [criterionId], references: [id], onDelete: SetNull)
+  criterionLabelSnapshot String
+  maxScoreSnapshot      Float
+  score                 Float
+  note                  String              @default("")
+
+  @@unique([evaluationId, criterionLabelSnapshot])
+  @@index([criterionId])
+}
+
+model ForumSpace {
+  id          String   @id @default(cuid())
+  teamId      String
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  creatorId   String
+  creator     User     @relation("ForumSpaceCreator", fields: [creatorId], references: [id], onDelete: Restrict)
+  name        String
+  description String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  members     ForumSpaceMember[]
+  topics      ForumTopic[]
+
+  @@unique([teamId, name])
+  @@index([teamId, updatedAt])
+}
+
+model ForumSpaceMember {
+  spaceId  String
+  userId   String
+  joinedAt DateTime   @default(now())
+  space    ForumSpace @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([spaceId, userId])
+  @@index([userId])
+}
+
+model ForumTopic {
+  id        String   @id @default(cuid())
+  spaceId   String?
+  space     ForumSpace? @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  category  String   @default("discussion")
+  title     String
+  body      String
+  isPinned  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  replies   ForumReply[]
+  likes     ForumTopicLike[]
+  bookmarks ForumTopicBookmark[]
+
+  @@index([spaceId, isPinned, updatedAt])
+  @@index([authorId, createdAt])
+}
+
+model ForumReply {
+  id        String     @id @default(cuid())
+  topicId   String
+  topic     ForumTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User       @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  body      String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([topicId, createdAt])
+}
+
+model ForumTopicLike {
+  topicId   String
+  userId    String
+  createdAt DateTime   @default(now())
+  topic     ForumTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([topicId, userId])
+}
+
+model ForumTopicBookmark {
+  topicId   String
+  userId    String
+  createdAt DateTime   @default(now())
+  topic     ForumTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([topicId, userId])
+}
+
+model Conversation {
+  id        String           @id @default(cuid())
+  kind      ConversationKind
+  name      String?
+  creatorId String
+  creator   User             @relation("ConversationCreator", fields: [creatorId], references: [id], onDelete: Restrict)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  members   ConversationMember[]
+  messages  Message[]
+
+  @@index([updatedAt])
+}
+
+model ConversationMember {
+  conversationId String
+  userId         String
+  joinedAt       DateTime     @default(now())
+  lastReadAt     DateTime?
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([conversationId, userId])
+  @@index([userId, lastReadAt])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Restrict)
+  body           String
+  createdAt      DateTime     @default(now())
+  editedAt       DateTime?
+  attachments    MessageAttachment[]
+
+  @@index([conversationId, createdAt])
+}
+
+model MessageAttachment {
+  messageId    String
+  mediaAssetId String
+  message      Message    @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  mediaAsset   MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Restrict)
+
+  @@id([messageId, mediaAssetId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String
+  title     String
+  body      String   @default("")
+  entityType String?
+  entityId  String?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, readAt, createdAt])
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  actorId   String
+  actor     User     @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  taskId    String?
+  task      Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  action    String
+  details   Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([projectId, createdAt])
+  @@index([taskId, createdAt])
+  @@index([actorId, createdAt])
+}
+
+model AuthSession {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, expiresAt])
+}

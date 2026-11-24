@@ -1,0 +1,21 @@
+{
+  "name": "ev-tasks-workspace",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @ev-tasks/frontend",
+    "dev:backend": "npm run dev --workspace @ev-tasks/backend",
+    "build": "npm run db:generate && npm run build --workspace @ev-tasks/frontend && npm run build --workspace @ev-tasks/backend",
+    "db:generate": "npm run db:generate --workspace @ev-tasks/backend",
+    "db:migrate": "npm run db:migrate --workspace @ev-tasks/backend",
+    "db:deploy": "npm run db:deploy --workspace @ev-tasks/backend",
+    "db:studio": "npm run db:studio --workspace @ev-tasks/backend",
+    "lint": "npm run lint --workspace @ev-tasks/frontend",
+    "typecheck": "npm run typecheck --workspace @ev-tasks/frontend",
+    "auth:create-admin": "npm run auth:create-admin --workspace @ev-tasks/backend"
+  }
+}

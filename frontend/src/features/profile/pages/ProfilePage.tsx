@@ -1,0 +1,35 @@
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { Bell, Check, CircleCheck, Clock3, ImagePlus, LockKeyhole, Monitor, Save, Trash2, UserRound } from 'lucide-react';
+import { useStore } from '@/app/state/store';
+import { useConfirmAction } from '@/shared/ui/ConfirmDialog';
+import { deleteAvatar, uploadAvatar } from '@/features/auth/services/auth-client';
+import '@/features/profile/pages/ProfilePage.css';
+
+export default function ProfilePage(){
+  const state=useStore();
+  const confirm=useConfirmAction();
+  const user=state.users.find(member=>member.id===state.activeUserId);
+  const preferences=state.profilePreferences[state.activeUserId]??{textSize:'large' as const};
+  const nameParts=(user?.name??'').trim().split(/\s+/);
+  const [firstName,setFirstName]=useState(nameParts.slice(0,-1).join(' '));
+  const [lastName,setLastName]=useState(nameParts[nameParts.length-1]??'');
+  const [title,setTitle]=useState(user?.title??'');
+  const [saved,setSaved]=useState(false);
+  const [uploadError,setUploadError]=useState('');
+  const avatarInput=useRef<HTMLInputElement>(null);
+  useEffect(()=>{const parts=(user?.name??'').trim().split(/\s+/);setFirstName(parts.slice(0,-1).join(' '));setLastName(parts[parts.length-1]??'');setTitle(user?.title??'');setSaved(false)},[user?.id,user?.name,user?.title]);
+  if(!user)return <div className="workspace-page profile-page"><p>Profil introuvable.</p></div>;
+  const saveProfile=(event:FormEvent)=>{event.preventDefault();state.updateOwnProfile(`${firstName.trim()} ${lastName.trim()}`,title);setSaved(!useStore.getState().lastActionError);};
+  const removeAvatar=async()=>{if(await confirm({title:'Supprimer la photo ?',message:'Votre photo de profil sera retirée.',confirmLabel:'Supprimer'})){await deleteAvatar();state.setOwnAvatar(null)}};
+  const handleAvatar=async(file?:File)=>{if(!file)return;setUploadError('');if(file.size>10*1024*1024){setUploadError('La photo doit faire moins de 10 Mo.');return}if(!['image/png','image/jpeg','image/gif'].includes(file.type)){setUploadError('Choisis une image PNG, JPEG ou GIF.');return}try{const image=await createImageBitmap(file);const canvas=document.createElement('canvas');canvas.width=256;canvas.height=256;const context=canvas.getContext('2d');if(!context)throw new Error('canvas');const scale=Math.max(256/image.width,256/image.height),width=image.width*scale,height=image.height*scale;context.drawImage(image,(256-width)/2,(256-height)/2,width,height);const dataUrl=canvas.toDataURL('image/jpeg',.82);try{const avatarDataUrl=await uploadAvatar(dataUrl);state.setOwnAvatar(avatarDataUrl)}catch{state.setOwnAvatar(dataUrl)}image.close()}catch{setUploadError('Cette image ne peut pas être chargée.')} };
+  const initials=user.name.split(' ').map(part=>part[0]).join('').slice(0,2).toUpperCase();
+  return <div className="workspace-page profile-page">
+    <header className="profile-page-heading"><div><div className="eyebrow">MON ESPACE PERSONNEL</div><h1>Profil et paramètres</h1><p>Gère tes informations personnelles et tes préférences d’affichage.</p></div></header>
+    <div className="profile-settings-grid"><main className="profile-settings-main">
+      <section className="profile-settings-card profile-personal-card"><header><span className="profile-settings-icon"><UserRound size={17}/></span><div><h2>Informations personnelles</h2><p>Ces informations sont visibles par les membres de ton équipe.</p></div></header><div className="profile-photo-row"><span className="profile-photo-preview">{user.avatarDataUrl?<img src={user.avatarDataUrl} alt="Photo de profil"/>:initials}</span><div className="profile-photo-controls"><strong>Photo de profil</strong><div><input ref={avatarInput} type="file" accept="image/png,image/jpeg,image/gif" hidden onChange={event=>{void handleAvatar(event.target.files?.[0]);event.currentTarget.value=''}}/><button type="button" className="profile-upload-button" onClick={()=>avatarInput.current?.click()}><ImagePlus size={16}/> Ajouter une photo</button>{user.avatarDataUrl&&<button type="button" className="profile-remove-button" onClick={()=>void removeAvatar()}><Trash2 size={15}/> Supprimer</button>}</div><small>PNG, JPEG ou GIF · moins de 10 Mo</small>{uploadError&&<small className="profile-upload-error">{uploadError}</small>}</div></div><form onSubmit={saveProfile}><label>Prénom<input value={firstName} onChange={event=>{setFirstName(event.target.value);setSaved(false)}} maxLength={60} required/></label><label>Nom<input value={lastName} onChange={event=>{setLastName(event.target.value);setSaved(false)}} maxLength={60} required/></label><label>Fonction<input value={title} onChange={event=>{setTitle(event.target.value);setSaved(false)}} maxLength={100} required/></label><div className="profile-save-row"><span>{saved&&<><Check size={14}/> Modifications enregistrées</>}</span><button type="submit" className="hub-primary"><Save size={15}/> Enregistrer</button></div></form>{state.lastActionError&&<div className="inline-error" role="alert">{state.lastActionError}</div>}</section>
+      <section className="profile-settings-card profile-password-card"><div><span className="profile-settings-icon purple"><LockKeyhole size={17}/></span><span><h2>Mot de passe</h2><p>La gestion du mot de passe nécessite un compte sécurisé sur le serveur.</p></span></div><button type="button" disabled>Changer le mot de passe</button></section>
+      <section className="profile-settings-card"><header><span className="profile-settings-icon green"><Monitor size={17}/></span><div><h2>Affichage</h2><p>Choisis la taille de texte adaptée à ton écran.</p></div></header><div className="profile-setting-row"><div><strong>Taille du texte</strong><small>Appliquée à l’interface sur cet appareil.</small></div><div className="profile-choice-group"><button type="button" className={preferences.textSize==='normal'?'active':''} onClick={()=>state.setTextSize('normal')} aria-pressed={preferences.textSize==='normal'}>Standard</button><button type="button" className={preferences.textSize==='large'?'active':''} onClick={()=>state.setTextSize('large')} aria-pressed={preferences.textSize==='large'}>Agrandie</button></div></div></section>
+      <section className="profile-settings-card"><header><span className="profile-settings-icon blue"><Bell size={17}/></span><div><h2>Disponibilité</h2><p>Le statut est calculé automatiquement à partir de ton activité dans l’application.</p></div></header><div className="profile-setting-row"><div><strong>Statut actuel</strong><small>Après 5 minutes sans activité, ton statut passe hors ligne.</small></div><span className={`profile-presence ${user.online?'is-online':'is-offline'}`}>{user.online?<CircleCheck size={16}/>:<Clock3 size={16}/>} {user.online?'En ligne':'Hors ligne'}</span></div></section>
+    </main><aside className="profile-settings-side"><div className="profile-help-card"><strong>Besoin d’aide ?</strong><p>Pour modifier ton accès ou ton rôle, contacte la personne qui gère la plateforme.</p></div></aside></div>
+  </div>;
+}

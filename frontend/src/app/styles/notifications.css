@@ -1,0 +1,81 @@
+.notification-popover{display:flex;flex-direction:column;max-height:min(620px,calc(100dvh - 100px))}
+.notification-list{min-height:0;max-height:300px;overflow:auto}
+.notification-deadlines{padding:12px 12px 7px;border-bottom:1px solid #edf0ee}
+.notification-deadlines h3{display:flex;align-items:center;gap:6px;margin:0 5px 8px;color:#818b85;font-size:10px;font-weight:700;letter-spacing:.35px;text-transform:uppercase}
+.notification-deadlines h3 svg{color:#d39a43}
+.notification-deadline-list{display:grid;gap:4px;max-height:156px;overflow:auto}
+.notification-deadline{width:100%;display:flex;align-items:center;gap:10px;padding:8px;border:0;border-radius:10px;background:transparent;text-align:left;cursor:pointer}
+.notification-deadline:hover{background:#f7fbf8}
+.notification-deadline-icon,.notification-kind-icon{width:34px;height:34px;display:grid;place-items:center;flex:0 0 34px;border-radius:11px;background:#edf7f1;color:#19805a}
+.notification-deadline.overdue .notification-deadline-icon{background:#fff0ed;color:#d65d54}
+.notification-deadline-copy,.notification-item-copy{min-width:0;display:grid;gap:4px}
+.notification-deadline-copy b{overflow:hidden;color:#36423b;font-size:11px;text-overflow:ellipsis;white-space:nowrap}
+.notification-deadline-copy small{color:#929b96;font-size:10px}
+.notification-item{align-items:center}
+.notification-item-copy{flex:1}
+.notification-item .notification-kind-icon{width:32px;height:32px;flex-basis:32px;border-radius:10px}
+.notification-kind-icon.tone-message{background:#eef1ff;color:#6574d8}
+.notification-kind-icon.tone-task{background:#edf7f1;color:#19805a}
+.notification-kind-icon.tone-review{background:#fff5e8;color:#c58a38}
+.notification-kind-icon.tone-success{background:#e8f7ed;color:#34935b}
+.notification-kind-icon.tone-default{background:#f0f2f1;color:#74827b}
+.notification-unread-dot{width:8px;height:8px;flex:0 0 8px;border-radius:50%;background:#48b67e}
+.notification-toast{position:fixed;z-index:150;top:82px;right:max(24px,calc((100vw - 1500px)/2 + 24px));width:min(390px,calc(100vw - 28px));display:flex;align-items:center;gap:6px;padding:10px;border:1px solid #e8ecea;border-radius:16px;background:#fff;box-shadow:0 18px 55px #1c30252b;animation:notification-toast-enter .22s ease-out}
+.notification-toast-open{min-width:0;flex:1;display:flex;align-items:center;gap:10px;padding:3px;border:0;background:transparent;text-align:left}
+.notification-toast-open>span:last-child{min-width:0;display:grid;gap:4px}
+.notification-toast-open strong{color:#27332d;font-size:11px}
+.notification-toast-open small{overflow:hidden;color:#66736c;font-size:10px;text-overflow:ellipsis;white-space:nowrap}
+.notification-toast-close{width:30px;height:30px;display:grid;place-items:center;flex:0 0 30px;border:0;border-radius:9px;background:transparent;color:#89938e}
+.notification-toast-close:hover{background:#f1f5f2;color:#43554b}
+@keyframes notification-toast-enter{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.dark-mode .notification-deadlines{border-color:#343b4c}
+.dark-mode .notification-deadlines h3,.dark-mode .notification-deadline-copy small,.dark-mode .notification-item-copy small{color:#a0a9bb}
+.dark-mode .notification-deadline-copy b,.dark-mode .notification-item-copy b{color:#dce2ef}
+.dark-mode .notification-deadline:hover{background:#2a3142}
+.dark-mode .notification-kind-icon.tone-message{background:#30364e;color:#b8c2ff}
+.dark-mode .notification-kind-icon.tone-task{background:#263b39;color:#8bd5b4}
+.dark-mode .notification-kind-icon.tone-review{background:#40372b;color:#f0bd73}
+.dark-mode .notification-kind-icon.tone-success{background:#293c35;color:#8bd4a3}
+.dark-mode .notification-kind-icon.tone-default{background:#303747;color:#b5bfce}
+.dark-mode .notification-toast{border-color:#343b4c;background:#202635}
+.dark-mode .notification-toast-open strong{color:#e0e5f0}
+.dark-mode .notification-toast-open small{color:#a0a9bb}
+.dark-mode .notification-toast-close{color:#a0a9bb}
+.dark-mode .notification-toast-close:hover{background:#2a3142;color:#e0e5f0}
+.action-feedback-toast{position:fixed;z-index:160;right:24px;bottom:24px;width:min(390px,calc(100vw - 28px));display:flex;align-items:center;gap:11px;padding:14px;border:1px solid #e8ecea;border-radius:16px;background:#fff;box-shadow:0 18px 55px #1c30252b;animation:notification-toast-enter .22s ease-out}
+.action-feedback-icon{width:36px;height:36px;display:grid;place-items:center;flex:0 0 36px;border-radius:12px;background:#e8f7ed;color:#34935b}
+.action-feedback-toast.error .action-feedback-icon{background:#fff0ed;color:#d65d54}
+.action-feedback-copy{min-width:0;flex:1;display:grid;gap:4px}
+.action-feedback-copy strong{color:#27332d;font-size:12px}
+.action-feedback-copy small{color:#66736c;font-size:11px;line-height:1.4}
+.action-feedback-toast>button{width:30px;height:30px;display:grid;place-items:center;flex:0 0 30px;border:0;border-radius:9px;background:transparent;color:#89938e}
+.action-feedback-toast>button:hover{background:#f1f5f2;color:#43554b}
+.action-confirm-backdrop{position:fixed;z-index:250;inset:0;display:grid;place-items:center;padding:18px;background:#17201c70;backdrop-filter:blur(4px)}
+.action-confirm-dialog{width:min(420px,100%);padding:24px;border:1px solid #e8ecea;border-radius:20px;background:#fff;box-shadow:0 25px 90px #101b1655}
+.action-confirm-icon{width:42px;height:42px;display:grid;place-items:center;margin-bottom:12px;border-radius:14px;background:#fff3e5;color:#d18b42}
+.action-confirm-dialog h2{margin:0 0 8px;color:#27332d;font-size:18px}
+.action-confirm-dialog p{margin:0;color:#6d7972;font-size:13px;line-height:1.55}
+.action-confirm-buttons{display:flex;justify-content:flex-end;gap:9px;margin-top:22px}
+.action-confirm-buttons button{min-height:38px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 13px;border:0;border-radius:10px;font-size:12px;font-weight:700}
+.action-confirm-cancel{background:#f1f4f2;color:#657169}
+.action-confirm-accept{background:#d85e55;color:#fff}
+.action-confirm-accept:hover{background:#c64e46}
+.dark-mode .action-feedback-toast,.dark-mode .action-confirm-dialog{border-color:#343b4c;background:#202635}
+.dark-mode .action-feedback-copy strong,.dark-mode .action-confirm-dialog h2{color:#e0e5f0}
+.dark-mode .action-feedback-copy small,.dark-mode .action-confirm-dialog p{color:#a0a9bb}
+.dark-mode .action-feedback-toast>button{color:#a0a9bb}
+.dark-mode .action-feedback-toast>button:hover,.dark-mode .action-confirm-cancel{background:#2a3142;color:#dce2ef}
+@media(max-width:600px){.action-feedback-toast{right:14px;bottom:14px}.action-confirm-dialog{padding:20px}}
+@media(max-width:600px){.notification-toast{top:72px;right:14px}.notification-deadlines{padding:10px 9px 6px}}
+@media(max-width:767px){
+  .app-shell .topbar:has(.notification-popover){z-index:300;overflow:visible}
+  .app-shell .notification-popover{
+    position:fixed;
+    top:calc(58px + env(safe-area-inset-top));
+    left:14px;
+    width:min(420px,calc(100vw - 28px));
+    right:auto;
+    max-height:min(620px,calc(100dvh - 150px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
+    box-sizing:border-box;
+  }
+}
